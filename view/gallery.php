@@ -207,18 +207,18 @@ foreach ($fbAlbums as $fbAlbum) {
 <body>
 <br><br><br><br>
 	<center><h1 style="color:#ffffff;font-size: 70px;font-family: 'Lobster', cursive;" >Gallery</h1></center>
-<article id="demo-default" class="demo">
+<!-- <article id="demo-default" class="demo">
 
     <h2></h2>
 
     <div id="coverflow">
         <ul class="flip-items">
             <?php
-        		foreach ($images as $imageURI) {
-        			echo "<li data-flip-title=\"\">
-			                <img src=\"".$imageURI."\" height='500'>
-			            </li>";
-        		}
+        		// foreach ($images as $imageURI) {
+        		// 	echo "<li data-flip-title=\"\">
+			       //          <img src=\"".$imageURI."\" height='500'>
+			       //      </li>";
+        		// }
         	?>
             
         </ul>
@@ -228,8 +228,8 @@ foreach ($fbAlbums as $fbAlbum) {
     var coverflow = $("#coverflow").flipster();
 </script>
 
-</article>
-
+</article> -->
+<!-- 
 <article id="demo-carousel" class="demo">
 
     <h2></h2>
@@ -237,11 +237,11 @@ foreach ($fbAlbums as $fbAlbum) {
     <div id="carousel">
         <ul class="flip-items">
         	<?php
-        		foreach ($images as $imageURI) {
-        			echo "<li data-flip-title=\"\">
-			                <img src=\"".$imageURI."\" height='300'>
-			            </li>";
-        		}
+        		// foreach ($images as $imageURI) {
+        		// 	echo "<li data-flip-title=\"\">
+			       //          <img src=\"".$imageURI."\" height='300'>
+			       //      </li>";
+        		// }
         	?>
             
         </ul>
@@ -254,8 +254,8 @@ foreach ($fbAlbums as $fbAlbum) {
     });
 </script>
 
-</article>
-
+</article> -->
+<!-- 
 
 <article id="demo-wheel" class="demo">
 
@@ -263,12 +263,12 @@ foreach ($fbAlbums as $fbAlbum) {
 
     <div id="wheel">
         <ul>
-            <?php
+            <?php/**
         		foreach ($images as $imageURI) {
         			echo "<li data-flip-title=\"\">
 			                <img src=\"".$imageURI."\" height='300'>
 			            </li>";
-        		}
+        		}**/
         	?>
             
         </ul>
@@ -283,7 +283,7 @@ foreach ($fbAlbums as $fbAlbum) {
 
 
 </article>
-
+ -->
 
 <article id="demo-flat" class="demo">
 
@@ -294,7 +294,7 @@ foreach ($fbAlbums as $fbAlbum) {
             <?php
         		foreach ($images as $imageURI) {
         			echo "<li data-flip-title=\"\">
-			                <img src=\"".$imageURI."\" height='300'>
+			                <img src=\"".$imageURI."\" height='400'>
 			            </li>";
         		}
         	?>
