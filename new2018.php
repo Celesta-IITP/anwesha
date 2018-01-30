@@ -41,10 +41,25 @@
 	<script async type="text/javascript" src="js/jquery.mousewheel.js"></script>
 	
 	<script type="text/javascript">
+	var customhash ='';
 		$('.preloader_div').load("/preloader/");
 
 	//--horizontal----------- scrolling-->
 		$(document).ready(function() {
+			if(window.location.hash){
+				var hashsplit = window.location.hash.split('-');
+				console.log(hashsplit);
+				if(hashsplit[1]){
+					// customhash = '#'+hashsplit[1];
+				}
+				if(hashsplit[0]=='#hospitality'){
+					$('.acco_load').click();
+				}else if(hashsplit[0]=='#sponsors'){
+					$('.spons_div').click();
+				}else if(hashsplit[0]=='#register'){
+					$('.register').click();
+				}
+			}
 		    $('body, html, *').mousewheel(function(e, delta) {
 		        // multiplying by 40 is the sensitivity, 
 		        // increase to scroll faster.
@@ -73,7 +88,7 @@
 			<li><a href="/">Home</a></li>
 			<li><a href="/events/">Events</a></li>
 			<!-- <li class="sch_div">Schedule</li> -->
-			<li><a href="/gallery/">Gallery</a></li>
+			<li><a href="https://www.facebook.com/pg/anwesha.iitpatna/photos/?ref=page_internal" target="_blank">Gallery</a></li>
 			<li><a href="/team/">Team</a></li>
 			<!-- <li><a href="/events/">Events</a></li> -->
 			<li class="spons_div">Sponsors</li>
@@ -102,22 +117,21 @@
 	</div>
 
 <!-----register fast---------->
-	<div class="reg_fast"><a target="_blank" href="/register_bare">REGISTER NOW</a></div>
+	<div class="reg_fast"><a onclick="$('.register').click();">REGISTER NOW</a></div>
 	
 <!-----login fast---------->
 	<div class="log_fast"><a target="_blank" href="/login_bare">LOGIN</a></div>
 	
 <!-----events update---------->
-	<div class="eve_updates">
+	<!-- <div class="eve_updates">
 		<img src="images/bat.png">
 		<div class="eve_up_content">
 			<p>Event Updates</p>
-			<a target="_blank" href="http://njath.anwesha.info">NJATH</a><br>
 			<a target="_blank" href="https://www.facebook.com/anwesha.iitpatna/photos/a.973019692730676.1073741856.163423960356924/1799240730108564/?type=3&theater">USB</a>
 			<br>
 
 		</div>
-	</div>
+	</div> -->
 	
 <!-----right arrow button------>
 	<div class="right_arrow">
@@ -322,7 +336,7 @@
 	</div>
 
 	<div class="ajax_loading_div">
-		<img class="close_icon" src="images/close.png"/>
+		<img class="close_icon" src="images/close2.png"/>
 		<div class="ajax_content"></div>
 	</div>
 
