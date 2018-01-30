@@ -1063,13 +1063,47 @@ class People{
         // $mail->send();
         
     }
-
+    public static function verifyMobile($id,$mobile,$accessToken,$conn){
+        $sql = "SELECT * FROM People NATURAL JOIN LoginTable WHERE pId = $id";
+        $result = mysqli_query($conn, $sql);
+        if(!$result || mysqli_num_rows($result)!=1){
+            $error = "No such User - Invalid Link #".$id;
+            $arr = array();
+            $arr[] = -1;
+            $arr[] = $error;
+            return $arr;
+        }else{
+            $row = mysqli_fetch_assoc($result);
+            if($mobile!=$row['mobile']){
+                $error = "Invalid Mobile No.";
+                $arr = array();
+                $arr[] = -1;
+                $arr[] = $error;
+                return $arr;
+            }
+            $vemail = self::verifyEmail($id,$row['csrfToken'],$accessToken,$conn);
+            if($vemail[0]==1){
+                $sql = "UPDATE LoginTable SET totalLogin = totalLogin + 1, lastLogin = NOW() WHERE pId = $id";
+                $result = mysqli_query($conn,$sql);
+                session_start();
+                $_SESSION['userID'] = $id;
+                $_SESSION['user_name'] =  $row['name'];
+                return $vemail;
+            }else{
+                $error = "Problem in verifying";
+                $arr = array();
+                $arr[] = -1;
+                $arr[] = $error;
+                return $arr;
+            }
+        }
+    }
     /**
      * Verfies the user registraion
      * @param int $id      Anwesha Id for registered user
      * @param string $token     Confirmation Token
      */
-    public function verifyEmail($id,$token,$conn){
+    public function verifyEmail($id,$token,$FBaccToken = null,$conn){
         $sql = "SELECT * FROM People NATURAL JOIN LoginTable WHERE pId = $id";
         $result = mysqli_query($conn, $sql);
         if(!$result || mysqli_num_rows($result)!=1){
@@ -1112,6 +1146,9 @@ class People{
             $arr[] = $error;
             return $arr;
         }
+        if(isset($FBaccToken))
+        $sqlUpdate = "UPDATE LoginTable SET csrfToken = '', type = 0, FBaccToken = '$FBaccToken' WHERE pId = $id";
+        else
         $sqlUpdate = "UPDATE LoginTable SET csrfToken = '', type = 0 WHERE pId = $id";
         $result = mysqli_query($conn, $sqlUpdate);
         if(!$result){
@@ -1262,7 +1299,7 @@ class People{
         $sql = "INSERT INTO Registration VALUES ($eventID,$userID,null,0)";
         $result = mysqli_query($conn,$sql);
         if($result){
-            self::sendEventRegistrationEmail($userID,$eventID,$conn);
+            // self::sendEventRegistrationEmail($userID,$eventID,$conn);
             return array("status"=>true, "msg" => "You have been registered!");
         } else {
             return array("status"=>false, "msg"=> "Registration failed, already registered! #".alog(mysqli_error($conn)));
