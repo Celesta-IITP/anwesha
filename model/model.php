@@ -844,7 +844,7 @@ class People{
      * @param int $id      Anwesha Id for registered user
      * @param boolean $ca      if true then link is for CampusAmbassador
      */
-    public static function Email($emailId,$name,$link,$id,$ca,$ver = null)
+    public static function Email($emailId,$name,$link,$id,$ca = 0,$ver = null)
     {
         require('defines.php');
         $actual_link = (isset($_SERVER['HTTPS']) ? "https" : "http") . "://$_SERVER[HTTP_HOST]";
@@ -1251,7 +1251,8 @@ class People{
     {
         require('defines.php');
         $user = People::getUser($userID,$conn);
-        $sql = "SELECT eveName, FROM Events WHERE eveId = $eveID";
+        $sql = "SELECT eveName,name,email FROM Events WHERE eveId = $eveID";
+        alog(mysqli_error($conn));
         $result = mysqli_query($conn,$sql);
         $row = mysqli_fetch_assoc($result);
         $eveName = $row['eveName'];
