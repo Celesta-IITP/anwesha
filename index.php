@@ -3,7 +3,7 @@
 ini_set('display_errors', '0');     # don't show any errors....
 error_reporting(E_ALL & ~E_NOTICE & ~E_STRICT);  # ...but do log them
 ini_set('zlib_output_compression','On');
-
+date_default_timezone_set("Asia/Kolkata");
 ini_set("log_errors", 1);
 ini_set("error_log", "errors.log");
 // error_log($_SERVER['REMOTE_ADDR']);
@@ -61,6 +61,12 @@ if (preg_match($base . '(ca|)_?([0-9]{4}|)$@', $url, $match)) {
 	require ('view/team.html');
 } elseif (preg_match($base . 'accodomation/$@', $url, $match)) {
 	require ('view/accodomation.html');
+} elseif (preg_match($base . 'pro-nites/([0-9]{0,5})$@', $url, $match)) {
+	require ('view/pronites.php');
+} elseif (preg_match($base . 'pro-nites/static/([a-zA-Z0-9]{1,20})$@', $url, $match)) {
+	require ('view/'.$match[1].'.html');
+} elseif (preg_match($base . 'schedule/?$@', $url, $match)) {
+	require ('view/schedule.php');
 } elseif (preg_match($base . 'fest_cord/$@', $url, $match)) {
 	require ('view/team_cords/fest_cord.html');
 }  elseif (preg_match($base . 'mpr/$@', $url, $match)) {
@@ -106,6 +112,10 @@ if (preg_match($base . '(ca|)_?([0-9]{4}|)$@', $url, $match)) {
 // 	require ('controller/cssLoader.php');
 } elseif ( preg_match($base .'events/?$@', $url, $match ) ) {
 	require ('view/events.php');
+} elseif ( preg_match($base .'event/([1-3])/?([0-9]{0,4})?/?$@', $url, $match ) ) {
+	require ('view/events.php');
+} elseif ( preg_match($base .'event/([a-zA-Z-]+)?$@', $url, $match ) ) {
+	require ('view/view_eve.php');
 } elseif ( preg_match($base .'eventAdmin/?(|addEvent|update|delete|view|logout)/?([0-9]{0,9})/?([01])?$@', $url, $match ) ) {
 	require ('view/eventAdmin.php');
 } elseif ( preg_match($base .'imgupload/([0-9]{1,4})$@', $url, $match ) ) {
@@ -130,6 +140,8 @@ if (preg_match($base . '(ca|)_?([0-9]{4}|)$@', $url, $match)) {
 	require ('controller/totReg.php');
 } elseif (preg_match($base . 'user/register/User/?$@', $url)) {
 	require ('controller/userRegistration.php');
+} elseif (preg_match($base . 'reg/mobconfirm/?$@', $url)) {
+	require ('controller/fbRegSuccess.php');
 } elseif (preg_match($base . 'user/CAcheck/([0-9]+)/?$@', $url, $match)) {
 	require ('controller/cacheck.php');
 } elseif (preg_match($base . 'user/special/([0-9]{4})/?$@', $url, $match)) {

@@ -144,7 +144,7 @@ class People{
         return $error;
     }
 
-    public function validateString($param){
+    public static function validateString($param){
 
         $error = 1;
         if (!preg_match('/^[a-zA-Z0-9.]*$/', $param)) {
@@ -160,7 +160,7 @@ class People{
      * @param  MySQLi object $conn variable containing connection details
      * @return boolean AnweshaID valid or not
      */
-    public function validateID($userIds,$size,$conn){
+    public static function validateID($userIds,$size,$conn){
         for($i=0; $i < $size; $i++ ){
             if( strlen($userIds[$i]) != 4 ){
                 return -1;
@@ -254,7 +254,7 @@ class People{
      * @param  MySQLi object $conn variable containing connection details
      * @return array       array
      */
-    public function getUserByEmail($emailID,$conn){
+    public static function getUserByEmail($emailID,$conn){
         $sql = " SELECT * FROM People WHERE `email` = '$emailID'";
         $result = mysqli_query($conn, $sql);
         if(!$result || mysqli_num_rows($result)!=1){
@@ -278,7 +278,7 @@ class People{
      * @param  MySQLi object $conn variable containing connection details
      * @return isCampusAmbassador
      */
-    public function checkIfCampusAmbassador($id,$conn){
+    public static function checkIfCampusAmbassador($id,$conn){
         $sql = "SELECT 1 FROM CampusAmberg WHERE pId = $id";
         $result = mysqli_query($conn, $sql);
         if(!$result || mysqli_num_rows($result)!=1){
@@ -292,7 +292,7 @@ class People{
      * @param  mysqli $conn connection link
      * @return array
      */
-    public function getUserLoginInfo($id,$conn){
+    public static function getUserLoginInfo($id,$conn){
         $sql = " SELECT * FROM LoginTable WHERE pId = $id";
         $result = mysqli_query($conn, $sql);
         if(!$result || mysqli_num_rows($result)!=1){
@@ -315,7 +315,7 @@ class People{
      * @param  mysqli $conn mysqli link
      * @return array       index 0 is 1 or -1, index 1 is array or string.
      */
-    public function getEvents($id, $conn){
+    public static function getEvents($id, $conn){
         $sql = "SELECT Events.eveName FROM Registration INNER JOIN Events ON Registration.eveId = Events.eveId AND Registration.pId = $id";
         $result = mysqli_query($conn, $sql);
         if(!$result){
@@ -373,7 +373,7 @@ class People{
         return $arr;
     }
 
-    public function getGroups($id, $conn){
+    public static function getGroups($id, $conn){
 
     }
 
@@ -500,7 +500,8 @@ class People{
 
             $time = time() ;
             $confirm = ($fbID)?1:0;
-            $fbID = ($fbID)?$fbID:-time();
+            if($fbID==null ||  $fbID=="")
+                $fbID = -time()*rand(1,5);
             $qrurl = self::genQR($id)[3];
             // error_log('time()');
             $sqlInsert = "INSERT INTO People(name,fbID,pId,college,sex,mobile,email,dob,city,refcode,feePaid,confirm,qrurl) VALUES ('$n', $fbID, $id, '$col', '$se', '$mob', '$em', '$db', '$cit', '$rc', 0, $confirm, '$qrurl')";
@@ -540,7 +541,17 @@ class People{
 
             $result = mysqli_query($conn,$sqlInsert);
             if(!$result){
-                $Err = 'Problem in Creating login Id. Contact Registration team for help. #'.alog(mysqli_error($conn));
+                $Err = 'Problem in Creating login Id. Contact Registration team for help. Reference #'.alog(mysqli_error($conn));
+                $arr = array();
+                $arr[]=-1;
+                $arr[]=$Err;
+                mysqli_rollback($conn); 
+                return $arr;
+            }
+            $emailPrefInsert = "INSERT INTO `emailPrefs` (`pId`, `email`) VALUES ('$id', '$em');";
+            $result = mysqli_query($conn,$emailPrefInsert);
+            if(!$result){
+                $Err = 'Problem in Setting email preferences. Contact Registration team for help. Reference #'.alog(mysqli_error($conn));
                 $arr = array();
                 $arr[]=-1;
                 $arr[]=$Err;
@@ -649,7 +660,7 @@ class People{
      * @param  MySQLi $conn       database connection object
      * @return array             index 0 :- 1(success), -1(error);
      */
-    public function switchCampusAmbassador($anwid,$email,$address,$degree,$grad,$leader,$involvement,$threethings,$conn){
+    public static function switchCampusAmbassador($anwid,$email,$address,$degree,$grad,$leader,$involvement,$threethings,$conn){
         mysqli_autocommit($conn,FALSE);
         try
         {
@@ -729,7 +740,7 @@ class People{
         $sql = "SELECT * FROM People NATURAL JOIN LoginTable WHERE pId IN ($userarr) ";
         $result = mysqli_query($conn, $sql);
         if($result){
-            while ($row = mysqli_fetch_array($result, MYSQL_ASSOC)) {
+            while ($row = mysqli_fetch_assoc($result)) {
                 $email = $row['email'];
                 $name = $row['name'];
                 $token = $row['csrfToken'];
@@ -833,7 +844,7 @@ class People{
      * @param int $id      Anwesha Id for registered user
      * @param boolean $ca      if true then link is for CampusAmbassador
      */
-    public static function Email($emailId,$name,$link,$id,$ca,$ver = null)
+    public static function Email($emailId,$name,$link,$id,$ca = 0,$ver = null)
     {
         require('defines.php');
         $actual_link = (isset($_SERVER['HTTPS']) ? "https" : "http") . "://$_SERVER[HTTP_HOST]";
@@ -1063,13 +1074,47 @@ class People{
         // $mail->send();
         
     }
-
+    public static function verifyMobile($id,$mobile,$accessToken,$conn){
+        $sql = "SELECT * FROM People NATURAL JOIN LoginTable WHERE pId = $id";
+        $result = mysqli_query($conn, $sql);
+        if(!$result || mysqli_num_rows($result)!=1){
+            $error = "No such User - Invalid Link #".$id;
+            $arr = array();
+            $arr[] = -1;
+            $arr[] = $error;
+            return $arr;
+        }else{
+            $row = mysqli_fetch_assoc($result);
+            if($mobile!=$row['mobile']){
+                $error = "Invalid Mobile No.";
+                $arr = array();
+                $arr[] = -1;
+                $arr[] = $error;
+                return $arr;
+            }
+            $vemail = self::verifyEmail($id,$row['csrfToken'],$accessToken,$conn);
+            if($vemail[0]==1){
+                $sql = "UPDATE LoginTable SET totalLogin = totalLogin + 1, lastLogin = NOW() WHERE pId = $id";
+                $result = mysqli_query($conn,$sql);
+                session_start();
+                $_SESSION['userID'] = $id;
+                $_SESSION['user_name'] =  $row['name'];
+                return $vemail;
+            }else{
+                $error = "Problem in verifying";
+                $arr = array();
+                $arr[] = -1;
+                $arr[] = $error;
+                return $arr;
+            }
+        }
+    }
     /**
      * Verfies the user registraion
      * @param int $id      Anwesha Id for registered user
      * @param string $token     Confirmation Token
      */
-    public function verifyEmail($id,$token,$conn){
+    public static function verifyEmail($id,$token,$FBaccToken = null,$conn){
         $sql = "SELECT * FROM People NATURAL JOIN LoginTable WHERE pId = $id";
         $result = mysqli_query($conn, $sql);
         if(!$result || mysqli_num_rows($result)!=1){
@@ -1080,6 +1125,13 @@ class People{
             return $arr;
         }
         $row = mysqli_fetch_assoc($result);
+        if($row['type']==0 && $row['confirm']==1){
+            $error = "Anwesha ID already Confirmed! ANW".$id;
+            $arr = array();
+            $arr[] = 2;
+            $arr[] = $error;
+            return $arr;
+        }
         if(empty($token) || strcmp($token,$row['csrfToken'])!=0){
             $error = "Invalid Link, Link Expired or May be already Confirmed! #".$id;
             $arr = array();
@@ -1112,6 +1164,9 @@ class People{
             $arr[] = $error;
             return $arr;
         }
+        if(isset($FBaccToken))
+        $sqlUpdate = "UPDATE LoginTable SET csrfToken = '', type = 0, FBaccToken = '$FBaccToken' WHERE pId = $id";
+        else
         $sqlUpdate = "UPDATE LoginTable SET csrfToken = '', type = 0 WHERE pId = $id";
         $result = mysqli_query($conn, $sqlUpdate);
         if(!$result){
@@ -1154,7 +1209,7 @@ class People{
      * @param string $token     Confirmation Token
      * @param string $pass   New Password
      */
-    public function changePasswordResetToken($id,$token,$pass,$conn){
+    public static function changePasswordResetToken($id,$token,$pass,$conn){
         $sql = "SELECT csrfToken FROM LoginTable WHERE pId = '$id'";
         $result = mysqli_query($conn, $sql);
         if(!$result || mysqli_num_rows($result)!=1){
@@ -1192,18 +1247,19 @@ class People{
 
     }
 
-    public function sendEventRegistrationEmail($userID,$eveID,$conn)
+    public static function sendEventRegistrationEmail($userID,$eveID,$conn)
     {
         require('defines.php');
         $user = People::getUser($userID,$conn);
-        $sql = "SELECT eveName FROM Events WHERE eveId = $eveID";
+        $sql = "SELECT eveName,name,email FROM Events WHERE eveId = $eveID";
+        alog(mysqli_error($conn));
         $result = mysqli_query($conn,$sql);
         $row = mysqli_fetch_assoc($result);
         $eveName = $row['eveName'];
         $name = $user[1]['name'];
         $emailId = $user[1]['email'];
         // mail($to,$subject,$message);
-        $message = "Hi $name,<br>You have been registered for event<b> $eveName.</b> Thank You! <br>In case you have any registration related queries feel free to contact $ANWESHA_REG_CONTACT or drop an email to <i>$ANWESHA_REG_EMAIL</i>. You can also visit our website <i>$ANWESHA_URL</i> for more information.<br><br>Registration Desk<br>$ANWESHA_YEAR";
+        $message = "Hi $name,<br>You have been registered for event<b> $eveName.</b><br> Thank You! <br>In case you have any registration related queries feel free to contact $ANWESHA_REG_CONTACT or drop an email to <i>$ANWESHA_REG_EMAIL</i>. You can also visit our website <i>$ANWESHA_URL</i> for more information.<br><br>Registration Desk<br>$ANWESHA_YEAR";
         $subject = "$eveName Registration $ANWESHA_YEAR";
 
         require('resources/PHPMailer/PHPMailerAutoload.php');
@@ -1258,7 +1314,7 @@ class People{
      * @param  mysqli $conn    connection variable
      * @return array          associative array, index "status" is boolean, index "msg" carries corresponding message
      */
-    public function registerEventUserSingle($userID, $eventID, $conn){
+    public static function registerEventUserSingle($userID, $eventID, $conn){
         $sql = "INSERT INTO Registration VALUES ($eventID,$userID,null,0)";
         $result = mysqli_query($conn,$sql);
         if($result){
@@ -1269,6 +1325,114 @@ class People{
         }
     }
 
+    /**
+     * Sends notification to all users enrolled in one event
+     * @param  int $userID  anwesha id of the user
+     * @param  int $eventID event id of the event
+     * @param  mysqli $conn    connection variable
+     * @return array          associative array, index "status" is boolean, index "msg" carries corresponding message
+     */
+    public static function eventNotifyRegUsers($eventID, $title, $message, $registrar, $conn){
+        $sql = "SELECT p.name,p.pId,p.mobile,p.email FROM People p, Registration r WHERE (r.eveId = $eventID AND r.pId = p.pId)";
+        $result = mysqli_query($conn,$sql);
+        if($result){
+            $users = [];
+            while($row = mysqli_fetch_assoc($result)){
+                // $users[] = [
+                //     "pId"=>$row["pId"],
+                //     "name"=>$row["name"],
+                //     "email"=>$row["email"],
+                //     "mobile"=>$row["mobile"]
+                // ];
+                $users[] = $row["email"];
+                
+            }
+            $sql = "SELECT * FROM Events WHERE (eveId = $eventID)";
+            $result = mysqli_query($conn,$sql);
+            $event = [];
+            if($result){
+                $event = mysqli_fetch_assoc($result);
+
+            }
+            $admin = People::getUser($registrar,$conn);
+            $ValidOrg = Events::isValidOrg($registrar, $eventID, $conn);
+            if($ValidOrg[0]==-1){
+                return [
+                    "status"=>-1,
+                    "http"=>ValidOrg[1],
+                    "message"=>ValidOrg[2]
+                ];
+            }
+            if($admin[0]==-1){
+                return [
+                    "status"=>-1,
+                    "http"=>400,
+                    "message"=>$admin[1]
+                ];
+            }
+            // require('defines.php');
+            // require('resources/PHPMailer/PHPMailerAutoload.php');
+            // require('emailCredential.php');
+
+            // $mail = new PHPMailer;
+
+            // // 0 = off (for production use)
+            // // 1 = client messages
+            // // 2 = client and server messages
+            // // 3 = verbose debug output
+            // $mail->SMTPDebug = 0;
+
+            // $mail->isSMTP();                                      // Set mailer to use SMTP
+            // $mail->Host = MAIL_HOST;  // Specify main and backup SMTP servers
+            // $mail->SMTPAuth = MAIL_SMTP_AUTH;                               // Enable SMTP authentication
+            // $mail->Username = MAIL_USERNAME;                 // SMTP username
+            // $mail->Password = MAIL_PASSWORD;                           // SMTP password
+            // $mail->SMTPSecure = MAIL_SMTP_SECURE;                            // Enable TLS encryption, `ssl` also accepted
+            // $mail->Port = MAIL_PORT;                                    // TCP port to connect to
+
+            // $mail->setFrom($ANWESHA_REG_EMAIL, 'Anwesha Web Team');
+            // $mail->addAddress($emailId);
+            // $mail->addReplyTo($ANWESHA_REG_EMAIL, 'Web Team');
+            // $mail->isHTML(true);                                  // Set email format to HTML
+            // foreach($users as $user){
+            //     $mail->AddBCC($user);
+            // }
+            // $mail->Subject = $title;
+            // $mail->Body    = $content;
+            // $mail->AltBody = $content;
+            
+            //AWS SES Limit of 50 recepients
+            $offset = 0;
+            $netC = count($users);
+            $rem = [];
+            do{
+                $rem = array_slice($users,$offset,49);
+                $offset += 49;
+                  
+                $nodemailerBody = [
+                    "authID" => $NodeMailerAuthToken,
+                    "emailTo"=> $admin[1]["email"],
+                    "bcc"=> json_encode($rem),
+                    "emailSub"=>$event['eveName']."Event Update : ".$title,
+                    "bodyhtml"=>$message,
+                    "bodyplain"=>$message,
+                    "purp"=>"evereg",
+                    "title"=> $event['eveName']."Event Update : ".$title,
+                    "url"=>"https://anwesha.info/event/".$event['code']."/".$event["eveId"],
+                    "btnname"=> "View Event"
+
+                ];
+                self::HTTPPost("http://localhost:3000/text", $nodemailerBody);
+
+            }while(count($rem)>49);
+          
+            // $mail->send();
+            return array("status"=>true, "msg" => "Message sent to $netC users. !");
+        } else {
+            return array("status"=>false, "msg"=> "Function failed, already registered! #".alog(mysqli_error($conn)));
+        }
+    }
+
     /*
      * Check if the users are in another group for the same event
      * @param array(string) $ID userIds of the group members
@@ -1276,7 +1440,7 @@ class People{
      * @param  mysqli $conn    connection variable
      * @return int 1/-1 if valid/invalid group
      */
-    public function checkUserEventVacant($ID,$eId,$conn){
+    public static function checkUserEventVacant($ID,$eId,$conn){
         $sql="SELECT COUNT(*) FROM `Registration` WHERE `eveId` = '$eId' AND `pId` in (".implode(',',$ID).")";
         $result = mysqli_query($conn,$sql);
         if(!$result){
@@ -1298,7 +1462,7 @@ class People{
      * @param  mysqli $conn    connection variable
      * @return array          associative array, index "status" is boolean, index "msg" carries corresponding message
      */
-    public function registerGroupEvent($userIDs,$gsize,$eventID,$groupName,$conn)
+    public static function registerGroupEvent($userIDs,$gsize,$eventID,$groupName,$conn)
     {
 
         //Check if group name is valid
@@ -1406,7 +1570,7 @@ class People{
      * @param  MySQLi object $conn variable containing connection details
      * @return boolean AnweshaID valid or not
      */
-    public function validateAnweshaID($id,$conn){
+    public static function validateAnweshaID($id,$conn){
         if( strlen($id) != 4 ){
             return -1;
         }
@@ -1424,7 +1588,7 @@ class People{
     }
 
 
-    public function requestAccomodation($id,$dates,$conn)
+    public static function requestAccomodation($id,$dates,$conn)
     {
         
         if($id!=""){
@@ -1496,7 +1660,7 @@ class People{
  *
  */
 class Events{
-    public function getMainEvents($conn){
+    public static function getMainEvents($conn){
         $sql = " SELECT * FROM Events WHERE code = -1";
         $result = mysqli_query($conn, $sql);
         $arr = array();
@@ -1515,7 +1679,7 @@ class Events{
         return $arr;
     }
 
-    public function getAllEvents($conn){
+    public static function getAllEvents($conn){
     mysqli_set_charset($conn,"utf8");
     $sql = "SELECT * FROM Events";
         $result = mysqli_query($conn, $sql);
@@ -1535,7 +1699,7 @@ class Events{
         return $arr;
     }
 
-    public function getSubEvent($mainEvent,$conn){
+    public static function getSubEvent($mainEvent,$conn){
 
         $sql = "SELECT * FROM Events WHERE code = '$mainEvent'";
         $result = mysqli_query($conn, $sql);
@@ -1662,7 +1826,7 @@ class Events{
      * @param  mysqli $conn  mysqli connection variable
      * @return int        size of the event. -1 if event does not exist.
      */
-    public function getEventSize($eveID,$conn)
+    public static function getEventSize($eveID,$conn)
     {
         $sql = "SELECT size FROM Events WHERE eveId = $eveID";
         $result = mysqli_query($conn,$sql);
@@ -1685,7 +1849,7 @@ class Auth
      * @return string
      * generates a random string.
      */
-    public function randomPassword() {
+    public static function randomPassword() {
         $len=8;
         $alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890';
         $pass = ''; //remember to declare $pass as an array
@@ -1704,7 +1868,7 @@ class Auth
      * @param  mysqli $conn   connection variable
      * @return array         associative array. index "status" is boolean, index "key" has usual meaning, index "msg" has te usual meaning.
      */
-    public function getUserPrivateKey($userID,$conn){
+    public static function getUserPrivateKey($userID,$conn){
 
         $sql = "SELECT privateKey FROM LoginTable WHERE pId = $userID";
         $result = mysqli_query($conn,$sql);
@@ -1723,7 +1887,7 @@ class Auth
      * @param  mysqli $conn     mysqli connection variable
      * @return array
      */
-    public function loginUser($userID,$password,$conn){
+    public static function loginUser($userID,$password,$conn){
 
         $password = sha1($password);
 
@@ -1746,7 +1910,7 @@ class Auth
 
     }
 
-    public function verifyPassword($userId,$password,$conn){
+    public static function verifyPassword($userId,$password,$conn){
         $password = sha1($password);
 
         $sql = "SELECT People.name, People.college, People.sex, People.mobile, People.email, People.dob, People.city, People.feePaid, People.confirm, People.time AS regTime, LoginTable.totalLogin, LoginTable.lastLogin, LoginTable.privateKey AS 'key' FROM People INNER JOIN LoginTable ON People.pId = LoginTable.pId AND People.pId = $userId AND LoginTable.password = '$password'";
@@ -1760,7 +1924,7 @@ class Auth
         }
     }
 
-    public function forgetPassword($eId,$conn){
+    public static function forgetPassword($eId,$conn){
         $sql = "SELECT P.pId as pId,name,email,type FROM People P JOIN LoginTable LT on LT.pId=P.pId WHERE email = '$eId'";
         $result = mysqli_query($conn,$sql);
         if(!$result OR mysqli_num_rows($result) != 1 ){
@@ -1814,12 +1978,12 @@ class Auth
      * @param  string $content       Data without hash
      * @return boolean                if new hashedData matches to the old one the true else false.
      */
-    public function authenticateRequest($privateKey,$hashedContent,$content){
+    public static function authenticateRequest($privateKey,$hashedContent,$content){
         $newHashed = hash_hmac('sha256',$content,$privateKey);
         return md5($newHashed) == md5($hashedContent);
     }
 
-    public function changePassword($userId, $newPassword, $conn){
+    public static function changePassword($userId, $newPassword, $conn){
         $password = sha1($newPassword);
         $privateKey = sha1(self::randomPassword());
         $sql = "UPDATE LoginTable SET password = '$password', privateKey = '$privateKey' WHERE pId = $userId";
@@ -1835,7 +1999,7 @@ class Auth
      * @param  int $ID ANW1234
      * @return associative array     index status says if format is valid or not, index key has the numeric part of it.
      */
-    public function sanitizeID($ID)
+    public static function sanitizeID($ID)
     {
         if(preg_match('/^ANW([0-9]{4})$/', $ID, $match)){
             return array("status" => true, "key" => $match[1]);

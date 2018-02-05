@@ -1,9 +1,9 @@
 <?php
 ini_set('display_errors', '1');  
-
+error_reporting(E_ALL & ~E_NOTICE & ~E_STRICT); 
 require('model/model.php');
 require('dbConnection.php');
-
+require('defines.php');
 // echo json_encode(Events::isValidOrg(1020,0,$conn)); 
 // $plaintext = "message to be encrypted";
 // $cipher = "aes-128-gcm";
@@ -34,3 +34,8 @@ require('dbConnection.php');
 //                         SELECT count(*) from Events where eveId = E1.code AND (".$ownerQ.") 
 //                     ) 
 //                 )";
+
+// $conn = mysqli_connect(SERVER_ADDRESS,USER_NAME,PASSWORD,DATABASE);
+// session_start();
+// // People::sendVerificationMailToAll($conn);
+// echo json_encode(People::eventNotifyRegUsers(75,"Test","More content",$_SESSION['userID'],$conn));
